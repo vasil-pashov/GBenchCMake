@@ -41,8 +41,11 @@ class PlotDescription:
 
 class PlotRowException(Exception):
 	def __init__(self, domainId, message):
-		self.domainId=domainId
 		self.message=message
+
+class PlotRowUnitException(PlotRowException):
+	def __init__(self, message):
+		super().__init__(message)
 
 class Plot:
 	def __init__(self, description):
@@ -58,12 +61,20 @@ class Plot:
 	def options(self, options):
 		self._options=options
 
+	@property
+	def unit(self):
+		return self._unit
+
+	@unit.setter
+	def unit(self, unit):
+		self._unit=unit
+
 	def optionsJSON(self):
 		return json.dumps(self._options)
 
 	def addRow(self, rowData):
 		if self.description.domainId not in rowData:
-			raise PlotRowException(self.domainId, "Row is missing domain value.")
+			raise PlotRowException("Row is missing domain value.")
 
 		for id in rowData.keys():
 			if id not in self.description.columns:
@@ -132,7 +143,7 @@ def setupArgparse():
 	parser.add_argument('dest_file', help='Destination where to put the plots from src_dir')
 	return parser.parse_args()
 
-def makeOptions(title):
+def makeOptions(title, unit):
 	options={}
 	options['title']=title
 	options['legend']={'position': 'top'}
@@ -141,9 +152,14 @@ def makeOptions(title):
 		'format': 'yyyy-M-dd',
 		'gridlines': {'count': 0},
 		'slantedText': True,
-		'slantedTextAngle':-80
+		'slantedTextAngle':-80,
+		'title': 'Date'
+	}
+	vAxis={
+		'title': "Time ({})".format(unit)
 	}
 	options['hAxis']=hAxis
+	options['vAxis']=vAxis
 	return options
 
 
@@ -155,6 +171,7 @@ def gatherPlotData(dir):
 	]	
 	plotDesc=PlotDescription("date", descList)
 	allPlots={}
+	maxPlotValue={}
 	pattern=os.path.join(dir, "*.json")
 	fileNameList=glob.glob(pattern)
 	for fileName in fileNameList:
@@ -176,12 +193,26 @@ def gatherPlotData(dir):
 					}
 					if name not in  allPlots:
 						plot=Plot(plotDesc)
+						plot.unit=unit
 						plot.addRow(row)
 						allPlots[name]=plot
-						plot.options=makeOptions(name)
+						plot.options=makeOptions(name, plot.unit)
+						maxPlotValue[name]=max(cpuTime, realTime)
 					else:
+						if plot.unit != unit:
+							errMsg="Unit mismatch. Plot is using: {}, trying to add {}".format(plot.unit, unit)
+							raise PlotRowUnitException(errMsg)
 						plot=allPlots[name]
 						plot.addRow(row)
+						maxPlotValue[name]=max(maxPlotValue[name], max(cpuTime, realTime))
+	for (plotName, plot) in allPlots.items():
+		if plot.unit == "ms" and maxPlotValue[plotName] > 1000: 
+			plot.unit="s"
+			plot.options['vAxis']['title']="Time ({})".format(plot.unit)
+			for row in plot.rows:
+				for dataId in row:
+					if plot.description.columns[dataId].type=="number":
+						row[dataId] /= 1000
 	return allPlots
 
 def drawPlots(plots, dest):
