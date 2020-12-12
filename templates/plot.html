@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawChart);
+      function drawChart() {
+        {%for (name, data) in plots.items()%}
+          var dataInput = JSON.parse({{data.toGoogleChartArrayStr()}})
+          var dataTable = google.visualization.arrayToDataTable(dataInput)
+          var chart = new google.visualization.LineChart(document.getElementById('{{name}}'))
+          var options={{data.optionsJSON()}}
+          chart.draw(dataTable, options);
+        {%endfor%}
+      }
+    </script>
+  </head>
+  <body>
+    {%for name in plots.keys()%}
+    <div id="{{name}}" style="height: 450px"></div>
+    {%endfor%}
+  </body>
+</html>
