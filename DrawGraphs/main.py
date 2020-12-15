@@ -182,6 +182,9 @@ def gatherPlotData(dir):
 				date=datetime.datetime.strptime(executable['context']['date'], '%m/%d/%y %H:%M:%S')
 				benchmarks=executable['benchmarks']
 				for benchmark in benchmarks:
+					agregate=benchmark.get('aggregate_name', None)
+					if agregate and agregate != "mean": 
+						continue
 					name=benchmark['name']
 					cpuTime=benchmark['cpu_time']
 					realTime=benchmark['real_time']
