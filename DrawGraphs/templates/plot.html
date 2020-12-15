@@ -8,11 +8,10 @@
       google.charts.setOnLoadCallback(drawChart);
       function drawChart() {
         {%for (name, data) in plots.items()%}
-          var dataInput = JSON.parse({{data.toGoogleChartArrayStr()}})
-          var dataTable = google.visualization.arrayToDataTable(dataInput)
-          var chart = new google.visualization.LineChart(document.getElementById('{{name}}'))
-          var options={{data.optionsJSON()}}
-          chart.draw(dataTable, options);
+          new google.visualization.LineChart(document.getElementById('{{name}}')).draw(
+            google.visualization.arrayToDataTable(JSON.parse({{data.toGoogleChartArrayStr()}})),
+            {{data.optionsJSON()}}
+          );
         {%endfor%}
       }
     </script>
