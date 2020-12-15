@@ -51,16 +51,15 @@ def getTargetList(path: str) -> list:
 	return targetList
 
 
-def executeAllDescriptions(descPath: str, outputFile: typing.Union[typing.TextIO, None]) -> bool:
+def executeAllDescriptions(descPath: str, outputFile: typing.TextIO) -> bool:
 	"""Read all benchmark descriptions in file with path descPath and execute them
 
 	The file descPath must contain benchmark descriptions in JSON format. There must be
-	exactly one JSON on each line, no whitespaces are allowed. If outputFile is not none
-	the result from the benchmark will be written into outputFile
+	exactly one JSON on each line, no whitespaces are allowed.
 
 	:param descPath: Path to a file containing benchmark run descriptions
 	:type descPath: str
-	:param outputFile: None or file where the result will be written
+	:param outputFile: File where the result will be written
 	:type outputFile: typing.Union[typing.TextIO, None]
 	:returns: Whether at leas one benchmark has been executed
 	:rtpye: bool
@@ -104,15 +103,14 @@ def applyGlobalFilter(executablePath: str, localFilter: str, globalFilter: str) 
 	return [benchName.strip() for benchName in io.TextIOWrapper(proc.stdout) if regex.match(benchName)]
 
 
-def runBenchmarkCommand(command: str, outputFile: typing.Union[typing.TextIO, None]) -> None:
+def runBenchmarkCommand(command: str, outputFile: typing.TextIO) -> None:
 	"""Execute run command as a process. If outputFile is not none write the result there
 	:param command: Command line which will be executed
 	:type command: str
-	:param outputFile: None or file where to write the result from command
-	:type outputFile: typing.Union[typing.TextIO, None]
+	:param outputFile: File where to write the result from command
+	:type outputFile: typing.TextIO
 	"""
-	if outputFile:
-		outputFile.flush()
+	outputFile.flush()
 	subprocess.run(command, stdout=outputFile)
 
 
@@ -138,12 +136,12 @@ def createCommand(desc: dict, benchmarkName: typing.Union[str, None]) -> str:
 	return command
 
 
-def executeDescription(desc: dict, outputFile: typing.Union[typing.TextIO, None]) -> bool:
-	"""Create command from description, run it and save it in a file (if given)
+def executeDescription(desc: dict, outputFile: typing.TextIO) -> bool:
+	"""Create command from description, run it and save it in a file
 	:param desc: Description of the benchmark which will be run
 	:type desc: dict
-	:param outputFile: File where to write the result from the benchmark (if not None)
-	:type outputFile: typing.Union[typing.TextIO, None]
+	:param outputFile: File where to write the result from the benchmark
+	:type outputFile: typing.TextIO
 	:returns: If at least one benchmark has been executed
 	:rtype: bool
 	"""
@@ -158,7 +156,7 @@ def executeDescription(desc: dict, outputFile: typing.Union[typing.TextIO, None]
 					"[filter_item {}/{}]".format(currentBench, numBenches))
 			command = createCommand(desc, benchName)
 			runBenchmarkCommand(command, outputFile)
-			if outputFile and args.format == "json" and currentBench < numBenches:
+			if args.format == "json" and currentBench < numBenches:
 				outputFile.write(",")
 			currentBench += 1
 	else:
@@ -167,30 +165,31 @@ def executeDescription(desc: dict, outputFile: typing.Union[typing.TextIO, None]
 	return True
 
 
-def iterateMainList(outputFile: typing.Union[typing.TextIO, None]):
+def iterateMainList(outputFile: typing.TextIO):
 	"""Entry point for executing all listed benchmarks.
 
 	Read the file that contains all files which contain benchmark descriptions and
-	execute all descriptions.
+	execute all descriptions. If format is JSON the output will be a list containing
+	objects from all calls to google benchmark.
 
 	:param outputFile: File where the result will be writed
-	:type outputFile: typing.Union[typing.TextIO, None]
+	:type outputFile: typing.TextIO
 	"""
 	targetList = getTargetList(args.target_list)
 	numTargets = len(targetList)
 	currentTarget = 1
-	if file and args.format == "json":
-		file.write("[")
+	if args.format == "json":
+		outputFile.write("[")
 	for target in targetList:
 		sys.stdout.flush()
 		logging.info(
 				"[target {}/{}] {}".format(currentTarget, numTargets, target))
-		hasTests = executeAllDescriptions(target, file)
-		if file and args.format == "json" and currentTarget < numTargets and hasTests:
-			file.write(",")
+		hasTests = executeAllDescriptions(target, outputFile)
+		if args.format == "json" and currentTarget < numTargets and hasTests:
+			outputFile.write(",")
 		currentTarget += 1
-	if file and args.format == "json":
-		file.write("]")
+	if args.format == "json":
+		outputFile.write("]")
 	sys.stdout.flush()
 	logging.info("All benchmarks completed")
 
@@ -202,10 +201,10 @@ def main():
 			format='[%(asctime)s] %(levelname)s: %(message)s',
 			level=args.log_level * 10,
 			datefmt='%Y/%m/%d %H:%M:%S')
-	file = open(args.out_path, "w") if args.out_path else None
+	outputFile = open(args.out_path, "w") if args.out_path else sys.stdout
 	iterateMainList(outputFile)
-	if file:
-		file.close()
+	if outputFile and outputFile != sys.stdout:
+		outputFile.close()
 
 
 if __name__ == '__main__':
