@@ -70,12 +70,12 @@ endmacro()
 # \param:BINARY_TARGET CMake target (result from add_executable) which is going to be executed. This is mandatory.
 # \param:REPETITIONS How many times to repeat the benchmark (corresponds to --benchmark_repetitions)
 # \param:FILTER Regex for benchmarks from the target. Only benchmarks matching the regex will be executed. (corresponds to --benchmark_filter)
-# \param:MIN_TIME_SEC Minimum number of seconds we should run benchmark before results are considered significant (corresponds to --benchmark_min_time)
+# \param:MIN_TIME Minimum number of seconds we should run benchmark before results are considered significant (corresponds to --benchmark_min_time)
 function(add_benchmark)
 	cmake_parse_arguments(
 		REGISTER_BENCHMARK
 		""
-		"BINARY_TARGET;REPETITIONS;FILTER;MIN_TIME_SEC"
+		"BINARY_TARGET;REPETITIONS;FILTER;MIN_TIME"
 		""
 		${ARGN}
 	)
@@ -93,8 +93,8 @@ function(add_benchmark)
 		__appendJsonEntry("repetitions" "${REGISTER_BENCHMARK_REPETITIONS}" FALSE propList)
 	endif()
 
-	if(DEFINED REGISTER_BENCHMARK_MIN_TIME_SEC)
-		__appendJsonEntry("min_time" "${REGISTER_BENCHMARK_MIN_TIME_SEC}" FALSE propList)
+	if(DEFINED REGISTER_BENCHMARK_MIN_TIME)
+		__appendJsonEntry("min_time" "${REGISTER_BENCHMARK_MIN_TIME}" FALSE propList)
 	endif()
 
 	
