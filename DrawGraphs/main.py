@@ -42,7 +42,8 @@ def makeOptions(title: str, unit: str) -> dict:
 		'title': 'Date'
 	}
 	vAxis={
-		'title': "Time ({})".format(unit)
+		'title': "Time ({})".format(unit),
+		'minValue': 0
 	}
 	options['hAxis']=hAxis
 	options['vAxis']=vAxis
@@ -64,8 +65,8 @@ def gatherPlotData(dir):
 	for fileName in fileNameList:
 		with open(fileName, "r") as file:
 			jsonData=json.load(file)
-			for benchmarkTask in jsonData:
-				date=datetime.datetime.strptime(benchmarkTask['context']['date'], '%m/%d/%y %H:%M:%S')
+			date=datetime.datetime.strptime(jsonData['info']['date'], "%Y/%m/%d %H:%M:%S")
+			for benchmarkTask in jsonData['benchmark_list']:
 				benchmarks=benchmarkTask['benchmarks']
 				for benchmark in benchmarks:
 					agregate=benchmark.get('aggregate_name', None)

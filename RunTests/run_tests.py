@@ -8,8 +8,10 @@ import re
 import io
 import logging
 import typing
+import datetime
 
 args = None
+__version__='0.0.1'
 
 
 def setupArgparse():
@@ -165,6 +167,14 @@ def executeDescription(desc: dict, outputFile: typing.TextIO) -> bool:
 	return True
 
 
+def _generateJsonInfo():
+	"""Function used to generate basic info for the script"""
+	return {
+		'version': __version__,	# verison must be included always
+		'date': datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+	}
+
+
 def iterateMainList(outputFile: typing.TextIO):
 	"""Entry point for executing all listed benchmarks.
 
@@ -179,7 +189,9 @@ def iterateMainList(outputFile: typing.TextIO):
 	numTargets = len(targetList)
 	currentTarget = 1
 	if args.format == "json":
-		outputFile.write("[")
+		info=_generateJsonInfo()
+		outputFile.write("{\n\"info\": %s,\n" % (json.dumps(info)))
+		outputFile.write("\"benchmark_list\": [")
 	for target in targetList:
 		sys.stdout.flush()
 		logging.info(
@@ -189,7 +201,7 @@ def iterateMainList(outputFile: typing.TextIO):
 			outputFile.write(",")
 		currentTarget += 1
 	if args.format == "json":
-		outputFile.write("]")
+		outputFile.write("]\n}")
 	sys.stdout.flush()
 	logging.info("All benchmarks completed")
 
