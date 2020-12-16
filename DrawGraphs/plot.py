@@ -78,11 +78,17 @@ def _toJsonStrValue(type: str, value) -> str:
   if type == "datetime":
     strVal="\"Date(%d, %d, %d, %d, %d, %d)\"" % (
       value.year,
-      value.month,
+      value.month - 1,
       value.day,
       value.hour,
       value.minute,
       value.second
+    )
+  elif type == "date":
+    strVal="\"Date(%d, %d, %d)\"" % (
+      value.year,
+      value.month - 1,
+      value.day
     )
   else:
     strVal=str(value)
