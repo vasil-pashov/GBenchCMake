@@ -63,6 +63,9 @@ class PlotDescription:
     """
     self.columns[column.id]=column
 
+  def containsColumn(self, column):
+    return column['id'] in self.columns
+
 class PlotRowException(Exception):
   def __init__(self, domainId, message):
     self.message=message
@@ -123,6 +126,10 @@ class Plot:
 
   def optionsJSON(self):
     return json.dumps(self._options)
+
+  def addColumn(self, colDesc):
+    if self.__description.containsColumn(colDesc) == False:
+      self.__description.addColumn(colDesc)
 
   def addRow(self, rowData: dict):
     """Adds domain value and the values at other variables at this domain value
