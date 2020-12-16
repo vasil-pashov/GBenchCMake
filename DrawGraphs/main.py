@@ -6,7 +6,7 @@ import glob
 import datetime
 import jinja2
 import pathlib
-from plot import makePlotColumnDesc, Plot, PlotDescription
+from plot import makePlotColumnDesc, Plot, PlotDescription, PlotRowException
 
 def dirPath(string):
 	"""Used by argparse for directory type
@@ -37,10 +37,8 @@ def makeOptions(title: str, unit: str) -> dict:
 	options['legend']={'position': 'top'}
 	options['curveType']='function'
 	hAxis={
-		'format': 'yyyy-mm-dd',
+		'format': 'yyyy-M-dd',
 		'gridlines': {'count': 0},
-		'slantedText': True,
-		'slantedTextAngle':-80,
 		'title': 'Date'
 	}
 	vAxis={
@@ -60,7 +58,7 @@ def gatherPlotData(dir):
 	]	
 	plotDesc=PlotDescription("date", descList)
 	allPlots={}
-	maxPlotValue={}
+	additionalPlotInfo={}
 	pattern=os.path.join(dir, "*.json")
 	fileNameList=glob.glob(pattern)
 	for fileName in fileNameList:
@@ -82,15 +80,20 @@ def gatherPlotData(dir):
 						plot.addRow(row)
 						allPlots[name]=plot
 						plot.options=makeOptions(name, unit)
-						maxPlotValue[name]=realTime
+						additionalPlotInfo[name]=(realTime, unit)
 					else:
-						if allPlots[name][1] != unit:
-							raise PlotRowUnitException(
-								"Unit mismatch. Plot is using: {}, trying to add {}".format(
-									allPlots[name]['unit'], unit))
+						if unit != additionalPlotInfo[name][1]:
+							raise PlotRowException(
+								"Inconsistend row units. Expecting %s got %s" % (
+									unit, additionalPlotInfo[name][1]))
 						plot=allPlots[name]
 						plot.addRow(row)
-						maxPlotValue[name]=max(maxPlotValue[name], realTime)
+						additionalPlotInfo[name][0]=max(additionalPlotInfo[name][0], realTime)
+	for (plotName, (maxVal, unit)) in additionalPlotInfo.items():
+		if unit=="ms" and maxVal > 1000:
+			for row in allPlots[plotName].rows:
+				row['real_time'] /= 1000
+			allPlots[plotName].options['vAxis']['title'] = "Time (sec)"
 	return allPlots
 
 def drawPlots(plots, dest):

@@ -117,6 +117,10 @@ class Plot:
   def options(self, options: dict):
     self._options=options
 
+  @property
+  def rows(self):
+    return iter(self.__rows)
+
   def optionsJSON(self):
     return json.dumps(self._options)
 
@@ -158,11 +162,3 @@ class Plot:
     cols=[colDesc for colDesc in self.__description.columns.values()]
     rowDescrptionString=",".join(map(self.__getRowDescStr, self.__rows))
     return "\'[%s, %s]\'" % (json.dumps(cols), rowDescrptionString)
-
-  def forAllRows(f):
-    """Apply the function to all rows
-
-    f must take one argument - a dict which represents the row
-    """
-    for row in self.__rows:
-      f(row)
