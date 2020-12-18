@@ -133,7 +133,7 @@ class DataTable:
     :type colId: str
     :param value: The value which will be reformated as acceptable string value
     """
-    
+
     type=self.__description.columns[colId]['type']
     if value is None:
       return "null"
@@ -152,8 +152,10 @@ class DataTable:
         value.month - 1,
         value.day
       )
+    elif type == "string":
+      strVal = "\"%s\"" % (str(value))
     else:
-      strVal=str(value)
+      strVal = str(value)
     return strVal
 
   def optionsJSON(self):

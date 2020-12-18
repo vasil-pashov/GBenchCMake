@@ -8,7 +8,7 @@
       google.charts.setOnLoadCallback(drawChart);
       function drawChart() {
         {%for (name, data) in plots.items()%}
-          new google.visualization.LineChart(document.getElementById('{{name}}')).draw(
+          new google.visualization.{{chart}}(document.getElementById('{{name}}')).draw(
             google.visualization.arrayToDataTable(JSON.parse({{data.toGoogleChartArrayStr()}})),
             {{data.optionsJSON()}}
           );

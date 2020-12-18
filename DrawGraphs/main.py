@@ -6,7 +6,7 @@ import glob
 import datetime
 import jinja2
 import pathlib
-from plot import makePlotColumnDesc, Plot, PlotDescription, PlotRowException
+from plot import makePlotColumnDesc, DataTable, Plot, PlotDescription 
 
 def dirPath(string):
 	"""Used by argparse for directory type
@@ -16,6 +16,9 @@ def dirPath(string):
 		return string
 	else:
 		raise NotADirectoryError(string)
+
+class NotAFileException(Exception):
+	pass
 
 def setupArgparse():
 	"""Set up command line arguments and parse them
@@ -36,10 +39,8 @@ def setupArgparse():
 		if not os.path.isdir(args.src):
 			raise NotADirectoryError(args.src)
 	elif args.type == "bar":
-		if not os.path.exists(args.src):
-			raise FileNotFoundError(args.src)
-		if not os.path.isdir(args.dest):
-			raise NotADirectoryError(args.dest)
+		if not os.path.isfile(args.src):
+			raise NotAFileException(args.src)
 	return args
 
 def makeOptions(title: str, unit: str) -> dict:
@@ -48,21 +49,21 @@ def makeOptions(title: str, unit: str) -> dict:
 	:param unit: The unit along the y-axis.
 	:returns: Dict with google chart compatible options ready to be dumped as json
 	"""
-	options={}
-	options['title']=title
-	options['legend']={'position': 'top'}
-	options['curveType']='function'
-	hAxis={
+	options = {}
+	options['title'] = title
+	options['legend'] = {'position': 'top'}
+	options['curveType'] = 'function'
+	hAxis = {
 		'format': 'yyyy-M-dd',
 		'gridlines': {'count': 0},
 		'title': 'Date'
 	}
-	vAxis={
-		'title': "Time ({})".format(unit),
+	vAxis = {
+		'title': "Execution Time ({})".format(unit),
 		'minValue': 0
 	}
-	options['hAxis']=hAxis
-	options['vAxis']=vAxis
+	options['hAxis'] = hAxis
+	options['vAxis'] = vAxis
 	return options
 
 
@@ -73,8 +74,9 @@ def _parsePlotName(plotName: str) -> (str, str):
 	:returns: Tuple where the first element is the fixture name and the second element is
 	the specific name. If the plot did not come from fixture second will be None
 	"""
+
 	separatorIndex=plotName.find("/")
-	if separatorIndex==-1:
+	if separatorIndex == -1:
 		return (plotName, None)
 	else:
 		return (plotName[:separatorIndex], plotName[separatorIndex+1:])	
@@ -88,37 +90,81 @@ def gatherPlotData(dir):
 	fileNameList=glob.glob(pattern)
 	for fileName in fileNameList:
 		with open(fileName, "r") as file:
-			jsonData=json.load(file)
-			date=datetime.datetime.strptime(jsonData['info']['date'], "%Y/%m/%d %H:%M:%S")
+			jsonData = json.load(file)
+			date = datetime.datetime.strptime(jsonData['info']['date'], "%Y/%m/%d %H:%M:%S")
 			for benchmarkTask in jsonData['benchmark_list']:
-				benchmarks=benchmarkTask['benchmarks']
+				benchmarks = benchmarkTask['benchmarks']
 				for benchmark in benchmarks:
 					agregate=benchmark.get('aggregate_name', None)
 					if agregate and agregate != "mean": 
 						continue
-					fullName=benchmark['run_name']
-					(plotName, yValueName)=_parsePlotName(fullName)
-					realTime=benchmark['real_time']
+					fullName = benchmark['run_name']
+					(plotName, yValueName) =_parsePlotName(fullName)
+					realTime = benchmark['real_time']
 					colId = yValueName if yValueName else plotName
 					row={colId: realTime}
 					if plotName not in allPlots:
-						columns=[
+						columns = [
 							makePlotColumnDesc("date", label="Date", type="date"),
 							makePlotColumnDesc(colId, type="number")
 						]
-						plotDesc=PlotDescription("date", columns)
-						plot=Plot(plotDesc)
-						plot[date]=row
-						allPlots[plotName]=plot
-						plot.options=makeOptions(plotName, "")
+						plotDesc = PlotDescription("date", columns)
+						plot = Plot(plotDesc)
+						plot[date] = row
+						allPlots[plotName] = plot
+						plot.options = makeOptions(plotName, "")
 					else:
-						plot=allPlots[plotName]
+						plot = allPlots[plotName]
 						if colId not in plot.columns:
 							plot.addColumn(makePlotColumnDesc(colId, type="number"))
 						plot.addValue(date, row)
 	return allPlots
 
-def drawPlots(plots, dest):
+
+
+class UnknownFormatException(Exception):
+	pass
+
+
+def _iterateGBenchmarks(benchmarks, allCharts):
+	for benchmark in benchmarks:	
+		(fixtureName, barChartName) = _parsePlotName(benchmark["run_name"])
+		if benchmark.get("aggregate_name") and benchmark["agregate_name"] != "mean":
+			continue
+		if barChartName is not None:
+			row = {"name": barChartName, "time": benchmark['real_time']}
+			if fixtureName in allCharts:
+				barChart = allCharts[fixtureName]
+				barChart.addRow(row)
+			else:
+				cols = [makePlotColumnDesc("name"), makePlotColumnDesc("time", label="Execution Time", type="number")]
+				barChart = DataTable(PlotDescription("name", cols))
+				barChart.addRow(row)
+				options = {
+					"sortColumn": 0,
+					"sortAscending": False,
+					"sort": 'enable'
+				}
+				barChart.options = options
+				allCharts[fixtureName] = barChart	
+
+
+def gatherBarChartData(src: str) -> dict:
+	allCharts = {}
+	with open(src, "r") as file:
+		data = json.load(file)
+		if 'info' in data:
+			generator = data['info'].get('generator')
+			if generator is None:
+				raise UnknownFormatException("Unknown generator {}".format(generator))
+			for benchmarkTask in data['benchmark_list']:
+				_iterateGBenchmarks(benchmarkTask['benchmarks'], allCharts)
+		else:
+			_iterateGBenchmarks(data['benchmarks'], allCharts)
+	return allCharts
+
+
+def drawPlots(plots, dest, type):
 	templateLoader=jinja2.FileSystemLoader(
 		os.path.join(
 			pathlib.Path(__file__).parent.absolute(),
@@ -127,15 +173,19 @@ def drawPlots(plots, dest):
 	)
 	environment=jinja2.Environment(loader=templateLoader)
 	template=environment.get_template("plot.html")
-	renderResult=template.render(plots=plots)
+	chartConstrStr="LineChart" if type == "plot" else "ColumnChart"
+	renderResult=template.render(plots=plots, chart=chartConstrStr)
 	with open(dest, "w") as destFile:
 		destFile.write(renderResult)
 
 def main():
 	args=setupArgparse()
-	plots=gatherPlotData(args.src)
-	drawPlots(plots, args.dest_file)
-
+	if args.type == "plot":
+		plots = gatherPlotData(args.src)
+		drawPlots(plots, args.dest_file, args.type)
+	elif args.type == "bar":
+		plots = gatherBarChartData(args.src)
+		drawPlots(plots, args.dest_file, args.type)
 
 if __name__ == '__main__':
 	main()
