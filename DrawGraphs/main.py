@@ -22,9 +22,25 @@ def setupArgparse():
 	:returns: Parsed command line arguments
 	"""
 	parser=argparse.ArgumentParser()
-	parser.add_argument('src_dir', type=dirPath, help='Directory containing perfs to be ploted.')
+	parser.add_argument('src', help='Directory containing perfs to be ploted.')
 	parser.add_argument('dest_file', help='Destination where to put the plots from src_dir')
-	return parser.parse_args()
+	parser.add_argument(
+		"--type",
+		choices=["bar", "plot"],
+		default="plot",
+		help="Type of the graph which is going to be generated."\
+		 "If bar is selected a path to specific file must be given"\
+		 "If plot is selected a path to folder must be given and all benchmarks will be added to the plot")
+	args = parser.parse_args()
+	if args.type == "plot":
+		if not os.path.isdir(args.src):
+			raise NotADirectoryError(args.src)
+	elif args.type == "bar":
+		if not os.path.exists(args.src):
+			raise FileNotFoundError(args.src)
+		if not os.path.isdir(args.dest):
+			raise NotADirectoryError(args.dest)
+	return args
 
 def makeOptions(title: str, unit: str) -> dict:
 	"""Create default options for a plot
@@ -117,7 +133,7 @@ def drawPlots(plots, dest):
 
 def main():
 	args=setupArgparse()
-	plots=gatherPlotData(args.src_dir)
+	plots=gatherPlotData(args.src)
 	drawPlots(plots, args.dest_file)
 
 

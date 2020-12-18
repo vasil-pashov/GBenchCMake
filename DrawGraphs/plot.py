@@ -133,6 +133,7 @@ class DataTable:
     :type colId: str
     :param value: The value which will be reformated as acceptable string value
     """
+    
     type=self.__description.columns[colId]['type']
     if value is None:
       return "null"

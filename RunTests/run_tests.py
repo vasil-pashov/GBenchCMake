@@ -171,7 +171,8 @@ def _generateJsonInfo():
 	"""Function used to generate basic info for the script"""
 	return {
 		'version': __version__,	# verison must be included always
-		'date': datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+		'date': datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S"),
+		'generator': 'cmake_gbench/run_tests'
 	}
 
 
