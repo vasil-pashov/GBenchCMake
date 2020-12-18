@@ -92,6 +92,7 @@ class DataTable:
     self.__description=description
     self.__rows=[]
     self._options={}
+    self._sortOptions={}
 
   @property
   def options(self):
@@ -99,7 +100,21 @@ class DataTable:
   
   @options.setter 
   def options(self, options: dict):
-    self._options=options
+    self._options = options
+
+  def optionsJSON(self):
+    return json.dumps(self._options)
+
+  @property
+  def sortOptions(self):
+    return self._sortOptions
+  
+  @sortOptions.setter 
+  def sortOptions(self, sortOptions: dict):
+    self._sortOptions = sortOptions
+
+  def sortOptionsJSON(self):
+    return json.dumps(self._sortOptions)
 
   @property
   def domainId(self):
@@ -157,9 +172,6 @@ class DataTable:
     else:
       strVal = str(value)
     return strVal
-
-  def optionsJSON(self):
-    return json.dumps(self._options)
 
   def addColumn(self, colDesc):
     if self.__description.containsColumn(colDesc) == False:

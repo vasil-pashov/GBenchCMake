@@ -140,12 +140,7 @@ def _iterateGBenchmarks(benchmarks, allCharts):
 				cols = [makePlotColumnDesc("name"), makePlotColumnDesc("time", label="Execution Time", type="number")]
 				barChart = DataTable(PlotDescription("name", cols))
 				barChart.addRow(row)
-				options = {
-					"sortColumn": 0,
-					"sortAscending": False,
-					"sort": 'enable'
-				}
-				barChart.options = options
+				barChart.sortOptions = {'column': 1, 'desc': True}
 				allCharts[fixtureName] = barChart	
 
 

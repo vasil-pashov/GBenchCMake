@@ -6,10 +6,15 @@
     <script type="text/javascript">
       google.charts.load('current', {'packages':['corechart']});
       google.charts.setOnLoadCallback(drawChart);
+      function createDataTable(strInput, sortOpts) {
+        var data = google.visualization.arrayToDataTable(JSON.parse(strInput));
+        data.sort(sortOpts);
+        return data;
+      }
       function drawChart() {
         {%for (name, data) in plots.items()%}
           new google.visualization.{{chart}}(document.getElementById('{{name}}')).draw(
-            google.visualization.arrayToDataTable(JSON.parse({{data.toGoogleChartArrayStr()}})),
+            createDataTable({{data.toGoogleChartArrayStr()}}, {{data.sortOptionsJSON()}}),
             {{data.optionsJSON()}}
           );
         {%endfor%}
