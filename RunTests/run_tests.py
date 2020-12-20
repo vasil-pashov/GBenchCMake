@@ -12,6 +12,20 @@ import datetime
 
 args = None
 __version__='0.0.1'
+_unitConversionTable = {
+	"s": {
+		"ms": 1e3,
+		"us": 1e6,
+		"ns": 1e9
+	},
+	"ms": {
+		"us": 1e3,
+		"ns": 1e6
+	},
+	"us": {
+		"ns": 1e3
+	}
+}
 
 
 def setupArgparse():
@@ -105,16 +119,35 @@ def applyGlobalFilter(executablePath: str, localFilter: str, globalFilter: str) 
 	return [benchName.strip() for benchName in io.TextIOWrapper(proc.stdout) if regex.match(benchName)]
 
 
-def runBenchmarkCommand(command: str, outputFile: typing.TextIO) -> None:
+def _changeBenchmarksUnit(benchmarkList, unit):
+	for benchmark in benchmarkList['benchmarks']:
+		currentUnit = benchmark['time_unit']
+		if currentUnit != unit:
+			unitMult = _unitConversionTable[currentUnit][unit] if unit in _unitConversionTable[currentUnit] else 1/_unitConversionTable[unit][currentUnit]
+			benchmark['real_time'] *= unitMult	
+			benchmark['cpu_time'] *= unitMult
+			benchmark["time_unit"] = unit
+
+
+def runBenchmarkCommand(command: str, outputFile: typing.TextIO, desc: dict) -> None:
 	"""Execute run command as a process. If outputFile is not none write the result there
 	:param command: Command line which will be executed
 	:type command: str
 	:param outputFile: File where to write the result from command
 	:type outputFile: typing.TextIO
+	:param desc: Additional info about the command
+	:type desc: dict
 	"""
-	outputFile.flush()
-	subprocess.run(command, stdout=outputFile)
 
+	outputFile.flush()
+	unit = desc.get("unit")
+	if unit is None:
+		subprocess.run(command, stdout=outputFile, shell=True, check=True)
+	else:
+		proc = subprocess.run(command, capture_output=True, shell=True, text=True)
+		benchJSON = json.loads(proc.stdout)
+		_changeBenchmarksUnit(benchJSON, unit)
+		outputFile.write(json.dumps(benchJSON))
 
 def createCommand(desc: dict, benchmarkName: typing.Union[str, None]) -> str:
 	"""Read various properties from desc and create google benchmark command form them
@@ -157,13 +190,13 @@ def executeDescription(desc: dict, outputFile: typing.TextIO) -> bool:
 			logging.info(
 					"[filter_item {}/{}]".format(currentBench, numBenches))
 			command = createCommand(desc, benchName)
-			runBenchmarkCommand(command, outputFile)
+			runBenchmarkCommand(command, outputFile, desc)
 			if args.format == "json" and currentBench < numBenches:
 				outputFile.write(",")
 			currentBench += 1
 	else:
 		command = createCommand(desc, None)
-		runBenchmarkCommand(command, outputFile)
+		runBenchmarkCommand(command, outputFile, desc)
 	return True
 
 
