@@ -119,7 +119,21 @@ def applyGlobalFilter(executablePath: str, localFilter: str, globalFilter: str) 
 	return [benchName.strip() for benchName in io.TextIOWrapper(proc.stdout) if regex.match(benchName)]
 
 
+class UnknownUnitException(Exception):
+	pass
+
+
 def _changeBenchmarksUnit(benchmarkList, unit):
+	"""Iterate over benchmarks list and convert time unit if needed
+
+	:param benchmarkList: benchmarks list produced by google benchmark
+	:type benchmarkList: list
+	:param unit: Time unit to which should be converted one of (s, ms, us, ns)
+	:type unit: str
+	"""
+
+	if unit not in ["s", "ms", "us", "ns"]:
+		raise UnknownUnitException("Unknown unit passed {}".format(unit))
 	for benchmark in benchmarkList['benchmarks']:
 		currentUnit = benchmark['time_unit']
 		if currentUnit != unit:
