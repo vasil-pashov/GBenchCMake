@@ -71,11 +71,12 @@ endmacro()
 # \param:REPETITIONS How many times to repeat the benchmark (corresponds to --benchmark_repetitions)
 # \param:FILTER Regex for benchmarks from the target. Only benchmarks matching the regex will be executed. (corresponds to --benchmark_filter)
 # \param:MIN_TIME Minimum number of seconds we should run benchmark before results are considered significant (corresponds to --benchmark_min_time)
+# \param:UNIT Overwrite the unit of the benchmarks. The executor script will change the unit to the given one.
 function(add_benchmark)
 	cmake_parse_arguments(
 		REGISTER_BENCHMARK
 		""
-		"BINARY_TARGET;REPETITIONS;FILTER;MIN_TIME"
+		"BINARY_TARGET;REPETITIONS;FILTER;MIN_TIME;UNIT"
 		""
 		${ARGN}
 	)
@@ -89,6 +90,10 @@ function(add_benchmark)
 		__appendJsonEntry("filter" ${REGISTER_BENCHMARK_FILTER} TRUE propList)
 	endif()
 
+	if(DEFINED REGISTER_BENCHMARK_UNIT)
+		__appendJsonEntry("unit" ${REGISTER_BENCHMARK_UNIT} TRUE propList)
+	endif()
+
 	if(DEFINED REGISTER_BENCHMARK_REPETITIONS)
 		__appendJsonEntry("repetitions" "${REGISTER_BENCHMARK_REPETITIONS}" FALSE propList)
 	endif()
@@ -97,7 +102,6 @@ function(add_benchmark)
 		__appendJsonEntry("min_time" "${REGISTER_BENCHMARK_MIN_TIME}" FALSE propList)
 	endif()
 
-	
 	list(JOIN propList "," joinedProps)
 	set(jsonProps "{${joinedProps}}")
 
