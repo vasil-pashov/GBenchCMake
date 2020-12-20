@@ -8,7 +8,9 @@
       google.charts.setOnLoadCallback(drawChart);
       function createDataTable(strInput, sortOpts) {
         var data = google.visualization.arrayToDataTable(JSON.parse(strInput));
-        data.sort(sortOpts);
+        if(!(Object.keys(sortOpts).length === 0 && sortOpts.constructor === Object)) {
+          data.sort(sortOpts);
+        }
         return data;
       }
       function drawChart() {
