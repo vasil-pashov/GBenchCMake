@@ -4,9 +4,9 @@ Provides CMake functionality to register benchmars with google benchmark (simila
 ## Dependencies
 1. Google Benchmark 1.5.0
 2. CMake 3.18
-4. Python 3.8
-5. Jinja2 python library - used for creating plots
-6. Google charts forzen version 49 - used for creating plots
+3. Python 3.8
+4. Jinja2 python library - used for creating plots
+5. Google charts forzen version 49 - used for creating plots
 
 ## How to use
 This repo provides 3 components:
